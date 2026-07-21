@@ -1,0 +1,50 @@
+package com.sonicpulse.analyzer.service;
+
+import com.sonicpulse.analyzer.dto.ArtistDto;
+import com.sonicpulse.analyzer.dto.PagingResponse;
+import com.sonicpulse.analyzer.dto.TrackDto;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+@Service
+public class SpotifyService {
+
+    private final RestClient restClient;
+
+    public SpotifyService() {
+        this.restClient = RestClient.builder()
+                .baseUrl("https://api.spotify.com/v1")
+                .build();
+    }
+
+    public PagingResponse<ArtistDto> getTopArtists(OAuth2AuthorizedClient client, String timeRange, Integer limit) {
+        String token = client.getAccessToken().getTokenValue();
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/me/top/artists")
+                        .queryParam("time_range", timeRange)
+                        .queryParam("limit", limit)
+                        .build()
+                )
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .body(new ParameterizedTypeReference<PagingResponse<ArtistDto>>() {});
+    }
+
+    public PagingResponse<TrackDto> getTopTracks(OAuth2AuthorizedClient client, String timeRange, Integer limit) {
+        String token = client.getAccessToken().getTokenValue();
+
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/me/top/tracks")
+                        .queryParam("time_range", timeRange)
+                        .queryParam("limit", limit)
+                .build()
+                )
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .body(new ParameterizedTypeReference<PagingResponse<TrackDto>>() {});
+    }
+}
