@@ -10,8 +10,11 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 @Service
 public class SpotifyService {
@@ -85,5 +88,45 @@ public class SpotifyService {
                 .body(SpotifySearchResponse.class);
 
         return (response != null && response.tracks() != null) ? response.tracks().items() : List.of();
+    }
+
+    public List<TrackDto> searchTracks(OAuth2AuthorizedClient client, String keyword) {
+        String token = client.getAccessToken().getTokenValue();
+
+        SpotifySearchResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/search")
+                        .queryParam("q", keyword)
+                        .queryParam("type", "track")
+                        .build()
+                )
+                .headers(headers -> headers.setBearerAuth(token))
+                .retrieve()
+                .body(SpotifySearchResponse.class);
+
+        return response != null ? response.tracks().items() : List.of();
+    }
+
+    public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords) {
+        List<TrackDto> tracks = new ArrayList<>();
+        Set<String> seenIds = new HashSet<>();
+
+        for (String keyword : keywords) {
+            List<TrackDto> searchResults = searchTracks(client, keyword);
+
+            int count = 0;
+            for (TrackDto track : searchResults) {
+                if (seenIds.add(track.id())) {
+                    tracks.add(track);
+                    count++;
+                }
+
+                if (count >= 3) {
+                    break;
+                }
+            }
+        }
+
+        return tracks;
     }
 }
