@@ -1,7 +1,10 @@
 package com.sonicpulse.analyzer.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,13 +25,17 @@ public class GeminiService {
         this.objectMapper = new ObjectMapper();
     }
 
-    public record Part(String text){}
+    public record Part(String text) {
+    }
 
-    public record Content(List<Part> parts){}
+    public record Content(List<Part> parts) {
+    }
 
-    public record GenerationConfig(String responseMimeType){}
+    public record GenerationConfig(String responseMimeType) {
+    }
 
-    public record GeminiRequest(List<Content> contents, GenerationConfig generationConfig){}
+    public record GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
+    }
 
     public List<String> extractKeyWords(String userPrompt) {
         String promptString = "Extract 3 to 5 relevant search keywords for Spotify based on this prompt. Return ONLY a JSON array of strings: " + userPrompt;
@@ -38,15 +45,16 @@ public class GeminiService {
                 new GenerationConfig("application/json")
         );
 
-        String rawResponse = restClient.post()
-                .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey)
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(requestBody)
-                .retrieve()
-                .body(String.class);
-
         try {
-            com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(rawResponse);
+
+            String rawResponse = restClient.post()
+                    .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode rootNode = objectMapper.readTree(rawResponse);
 
             String jsonArrayText = rootNode
                     .path("candidates").get(0)
@@ -55,11 +63,17 @@ public class GeminiService {
 
             return objectMapper.readValue(
                     jsonArrayText,
-                    new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {}
+                    new TypeReference<List<String>>() {
+                    }
             );
 
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            System.err.println("Gemini API limit dosiahnutý (429)! Používam fallback kľúčové slová.");
+            return List.of("pop rock chill");
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse Gemini response", e);
+            System.err.println("Iná chyba pri volaní Gemini: " + e.getMessage());
+            return List.of("top hits");
         }
     }
 }

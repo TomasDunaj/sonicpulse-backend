@@ -4,6 +4,7 @@ import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
 import com.sonicpulse.analyzer.dto.TrackDto;
+import com.sonicpulse.analyzer.service.GeminiService;
 import com.sonicpulse.analyzer.service.SpotifyService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -20,9 +21,11 @@ import java.util.List;
 @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"}, allowCredentials = "true")
 public class SpotifyController {
     private final SpotifyService spotifyService;
+    private final GeminiService geminiService;
 
-    public SpotifyController(SpotifyService spotifyService) {
+    public SpotifyController(SpotifyService spotifyService, GeminiService geminiService) {
         this.spotifyService = spotifyService;
+        this.geminiService = geminiService;
     }
 
     @GetMapping("/top-artists")
@@ -38,5 +41,12 @@ public class SpotifyController {
     @GetMapping("/recommendations")
     public List<TrackDto> getRecommendations(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, RecommendationFiltersDto recommendationFiltersDto) {
         return  this.spotifyService.getRecommendations(client, recommendationFiltersDto);
+    }
+
+    @GetMapping("/generate-from-prompt")
+    public List<TrackDto> generateFromPrompt(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestParam String prompt) {
+        List<String> keywords = this.geminiService.extractKeyWords(prompt);
+
+        return this.spotifyService.generatePlaylistFromKeywords(client, keywords);
     }
 }
