@@ -10,9 +10,11 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+@Component
 public class OAuth2Successhandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
@@ -39,6 +41,6 @@ public class OAuth2Successhandler implements AuthenticationSuccessHandler {
 
         userService.processOAuthUser(spotifyId, email, displayName, accessToken, refreshToken);
 
-        response.sendRedirect("http://localhost:5173/"); // alebo URL tvojho frontendu (napr. React/Vite)
+        response.sendRedirect("http://localhost:5173/");
     }
 }
