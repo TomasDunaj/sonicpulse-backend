@@ -3,9 +3,12 @@ package com.sonicpulse.analyzer.service;
 import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
+import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.SpotifySearchResponse;
 import com.sonicpulse.analyzer.dto.TrackDto;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -13,6 +16,7 @@ import org.springframework.web.client.RestClient;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -128,5 +132,35 @@ public class SpotifyService {
         }
 
         return tracks;
+    }
+
+    public String savePlaylist(String accessToken,  SavePlaylistRequest request) {
+        Map<?, ?> userProfile = restClient.get()
+                .uri("https://api.spotify.com/v1/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .body(Map.class);
+
+        String userId = userProfile.get("id").toString();
+
+        Map<?,?> newPlaylist = restClient.post()
+                .uri("https://api.spotify.com/v1/users/" + userId + "/playlists")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("name", request.name(), "public", false))
+                .retrieve()
+                .body(Map.class);
+
+        String playlistId = newPlaylist.get("id").toString();
+
+        restClient.post()
+                .uri("https://api.spotify.com/v1/playlists/" + playlistId + "/tracks")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("uris", request.uris()))
+                .retrieve()
+                .toBodilessEntity();
+
+        return playlistId;
     }
 }

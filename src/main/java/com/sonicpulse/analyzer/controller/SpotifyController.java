@@ -3,18 +3,24 @@ package com.sonicpulse.analyzer.controller;
 import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
+import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.TrackDto;
 import com.sonicpulse.analyzer.service.GeminiService;
 import com.sonicpulse.analyzer.service.SpotifyService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/spotify")
@@ -48,5 +54,15 @@ public class SpotifyController {
         List<String> keywords = this.geminiService.extractKeyWords(prompt);
 
         return this.spotifyService.generatePlaylistFromKeywords(client, keywords);
+    }
+
+    @PostMapping("/save-playlist")
+    public ResponseEntity<?> savePlaylist(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestBody SavePlaylistRequest savePlaylistRequest) {
+        String accessToken = client.getAccessToken().getTokenValue();
+        String playlistId = spotifyService.savePlaylist(accessToken, savePlaylistRequest);
+
+        return ResponseEntity.ok(Map.of("message", "Playlist was sucessfully created",
+                "playlistId", playlistId
+        ));
     }
 }

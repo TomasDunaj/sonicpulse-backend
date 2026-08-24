@@ -30,12 +30,9 @@ public class UserController {
         }
 
         var userInfo = principal.getAttributes();
-        String spotifyId = userInfo.get("id").toString();
-        String email = userInfo.get("email").toString();
-        String displayName = userInfo.get("display_name").toString();
-        String accessToken = client.getAccessToken().getTokenValue();
         String refreshToken = (client.getRefreshToken() != null) ? client.getRefreshToken().getTokenValue() : null;
 
-        return ResponseEntity.ok(this.userService.processOAuthUser(spotifyId, email,  displayName, accessToken, refreshToken ));
+        return ResponseEntity.ok(this.userService.processOAuthUser(userInfo.get("id").toString(), userInfo.get("email").toString(),
+                userInfo.get("display_name").toString(), client.getAccessToken().getTokenValue(), refreshToken ));
     }
 }
