@@ -58,8 +58,7 @@ public class SpotifyController {
 
     @PostMapping("/save-playlist")
     public ResponseEntity<?> savePlaylist(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestBody SavePlaylistRequest savePlaylistRequest) {
-        String accessToken = client.getAccessToken().getTokenValue();
-        String playlistId = spotifyService.savePlaylist(accessToken, savePlaylistRequest);
+        String playlistId = spotifyService.savePlaylist(client, savePlaylistRequest);
 
         return ResponseEntity.ok(Map.of("message", "Playlist was sucessfully created",
                 "playlistId", playlistId

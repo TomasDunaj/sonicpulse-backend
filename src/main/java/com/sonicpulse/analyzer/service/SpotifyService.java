@@ -134,30 +134,39 @@ public class SpotifyService {
         return tracks;
     }
 
-    public String savePlaylist(String accessToken,  SavePlaylistRequest request) {
-        Map<?, ?> userProfile = restClient.get()
-                .uri("https://api.spotify.com/v1/me")
-                .header("Authorization", "Bearer " + accessToken)
-                .retrieve()
-                .body(Map.class);
+    public String savePlaylist(OAuth2AuthorizedClient client, SavePlaylistRequest request) {
+        String accessToken = client.getAccessToken().getTokenValue();
 
-        String userId = userProfile.get("id").toString();
-
-        Map<?,?> newPlaylist = restClient.post()
-                .uri("https://api.spotify.com/v1/users/" + userId + "/playlists")
-                .header("Authorization", "Bearer " + accessToken)
+        Map<?, ?> newPlaylist = restClient.post()
+                .uri("/me/playlists")
+                .headers(headers -> headers.setBearerAuth(accessToken))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("name", request.name(), "public", false))
+                .body(Map.of(
+                        "name", request.name() != null && !request.name().isBlank() ? request.name() : "SonicPulse Playlist",
+                        "public", false
+                ))
                 .retrieve()
                 .body(Map.class);
+
+        if (newPlaylist == null || !newPlaylist.containsKey("id")) {
+            throw new RuntimeException("Error creating playlist.");
+        }
 
         String playlistId = newPlaylist.get("id").toString();
 
+        List<String> cleanUris = request.uris().stream()
+                .filter(uri -> uri != null && !uri.isBlank())
+                .toList();
+
+        if (cleanUris.isEmpty()) {
+            return playlistId;
+        }
+
         restClient.post()
-                .uri("https://api.spotify.com/v1/playlists/" + playlistId + "/tracks")
-                .header("Authorization", "Bearer " + accessToken)
+                .uri("/playlists/{playlistId}/items", playlistId)
+                .headers(headers -> headers.setBearerAuth(accessToken))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("uris", request.uris()))
+                .body(Map.of("uris", cleanUris))
                 .retrieve()
                 .toBodilessEntity();
 
