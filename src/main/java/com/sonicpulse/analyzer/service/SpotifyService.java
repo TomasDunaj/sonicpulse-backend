@@ -112,11 +112,15 @@ public class SpotifyService {
         return response != null ? response.tracks().items() : List.of();
     }
 
-    public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords) {
+    public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords, Integer limit) {
         List<TrackDto> tracks = new ArrayList<>();
         Set<String> seenIds = new HashSet<>();
 
         for (String keyword : keywords) {
+            if (tracks.size() >= limit) {
+                break;
+            }
+
             List<TrackDto> searchResults = searchTracks(client, keyword);
 
             int count = 0;
@@ -124,6 +128,10 @@ public class SpotifyService {
                 if (seenIds.add(track.id())) {
                     tracks.add(track);
                     count++;
+
+                    if (tracks.size() >= limit) {
+                        break;
+                    }
                 }
 
                 if (count >= 3) {
@@ -141,7 +149,7 @@ public class SpotifyService {
         String playlistName = (request.name() != null && !request.name().isBlank())
                 ? request.name()
                 : "SonicPulse Playlist";
-        
+
         CreatePlaylistDto spotifyBody = new CreatePlaylistDto(
                 playlistName,
                 false,
