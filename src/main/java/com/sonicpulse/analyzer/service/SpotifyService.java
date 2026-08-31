@@ -9,13 +9,13 @@ import com.sonicpulse.analyzer.dto.SpotifySearchResponse;
 import com.sonicpulse.analyzer.dto.TrackDto;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -113,35 +113,41 @@ public class SpotifyService {
     }
 
     public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords, Integer limit) {
-        List<TrackDto> tracks = new ArrayList<>();
-        Set<String> seenIds = new HashSet<>();
+        Set<TrackDto> tracks = new LinkedHashSet<>();
 
+        int targetPerKeyword = (int) Math.ceil((double) limit / (double) keywords.size());
+        
+        fetchAndFillTracks(client, keywords, tracks, limit, targetPerKeyword);
+
+        if (tracks.size() < limit) {
+            fetchAndFillTracks(client, keywords, tracks, limit, Integer.MAX_VALUE);
+        }
+
+        return new ArrayList<>(tracks);
+    }
+
+    private void fetchAndFillTracks(OAuth2AuthorizedClient client, List<String> keywords, Set<TrackDto> tracks, Integer totalLimit, int maxPerKeyword) {
         for (String keyword : keywords) {
-            if (tracks.size() >= limit) {
+            if (tracks.size() >= totalLimit) {
                 break;
             }
 
-            List<TrackDto> searchResults = searchTracks(client, keyword);
+            List<TrackDto> foundTracks = this.searchTracks(client, keyword);
 
-            int count = 0;
-            for (TrackDto track : searchResults) {
-                if (seenIds.add(track.id())) {
-                    tracks.add(track);
-                    count++;
+            int addedFromThisKeyword = 0;
 
-                    if (tracks.size() >= limit) {
-                        break;
-                    }
+            for (TrackDto track : foundTracks) {
+                if (tracks.size() >= totalLimit || addedFromThisKeyword >= maxPerKeyword) {
+                    break;
                 }
 
-                if (count >= 3) {
-                    break;
+                if (tracks.add(track)) {
+                    addedFromThisKeyword++;
                 }
             }
         }
-
-        return tracks;
     }
+
 
     public String savePlaylist(OAuth2AuthorizedClient client, SavePlaylistRequest request) {
         String accessToken = client.getAccessToken().getTokenValue();
