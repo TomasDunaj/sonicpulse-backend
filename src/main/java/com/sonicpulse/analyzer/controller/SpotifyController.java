@@ -4,9 +4,11 @@ import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
 import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
+import com.sonicpulse.analyzer.dto.SwapRequestDto;
 import com.sonicpulse.analyzer.dto.TrackDto;
 import com.sonicpulse.analyzer.service.GeminiService;
 import com.sonicpulse.analyzer.service.SpotifyService;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -63,5 +65,10 @@ public class SpotifyController {
         return ResponseEntity.ok(Map.of("message", "Playlist was sucessfully created",
                 "playlistId", playlistId
         ));
+    }
+
+    @PostMapping("/swap-track")
+    public ResponseEntity<TrackDto> swapTracks(@RegisteredOAuth2AuthorizedClient("spotify")  OAuth2AuthorizedClient client, @RequestBody SwapRequestDto swapRequestDto) {
+        return ResponseEntity.ok(this.spotifyService.swapTrack(client, swapRequestDto.keyword(), swapRequestDto.excludedIds()));
     }
 }

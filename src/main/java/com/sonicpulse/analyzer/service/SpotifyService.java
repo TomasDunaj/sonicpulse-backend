@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +102,7 @@ public class SpotifyService {
                         .path("/search")
                         .queryParam("q", keyword)
                         .queryParam("type", "track")
+                        .queryParam("limit", 10)
                         .build()
                 )
                 .headers(headers -> headers.setBearerAuth(token))
@@ -194,5 +194,17 @@ public class SpotifyService {
                 .toBodilessEntity();
 
         return playlistId;
+    }
+
+    public TrackDto swapTrack(OAuth2AuthorizedClient client, String keyword, List<String> excludedIds) {
+        List<TrackDto> foundTracks =  this.searchTracks(client, keyword);
+
+        for (TrackDto track : foundTracks) {
+            if (!excludedIds.contains(track.id())) {
+                return track;
+            }
+        }
+
+        throw new RuntimeException("No unique track found.");
     }
 }
