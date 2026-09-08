@@ -31,18 +31,30 @@ public class GeminiService {
     public record Content(List<Part> parts) {
     }
 
-    public record GenerationConfig(String responseMimeType) {
+    public record GenerationConfig(Double temperature, String responseMimeType) {
     }
 
-    public record GeminiRequest(List<Content> contents, GenerationConfig generationConfig) {
+    public record GeminiRequest(
+            List<Content> contents,
+            Content systemInstruction,
+            GenerationConfig generationConfig) {
     }
 
     public List<String> extractKeyWords(String userPrompt) {
-        String promptString = "Extract 3 to 5 relevant search keywords for Spotify based on this prompt. Return ONLY a JSON array of strings: " + userPrompt;
+
+        String systemInstructionText = """
+                Extract 3-5 Spotify search keywords from the prompt as a JSON array of strings.
+                
+                RULES:
+                - If user uses restrictive words ("only", "exclusively"), return ONLY filters for those exact artists (e.g. artist:"Calin"). NO other artists.
+                - If prompt is open-ended, feel free to include similar artists or genres.
+                - Always use artist:"Name" syntax for artist names.
+                """;
 
         GeminiRequest requestBody = new GeminiRequest(
-                List.of(new Content(List.of(new Part(promptString)))),
-                new GenerationConfig("application/json")
+                List.of(new Content(List.of(new Part(userPrompt)))),
+                new Content(List.of(new Part(systemInstructionText))),
+                new GenerationConfig(0.2, "application/json")
         );
 
         try {
