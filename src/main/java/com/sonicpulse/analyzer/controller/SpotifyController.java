@@ -2,13 +2,11 @@ package com.sonicpulse.analyzer.controller;
 
 import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
-import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
 import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.SwapRequestDto;
 import com.sonicpulse.analyzer.dto.TrackDto;
 import com.sonicpulse.analyzer.service.GeminiService;
 import com.sonicpulse.analyzer.service.SpotifyService;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
@@ -19,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
@@ -47,8 +44,8 @@ public class SpotifyController {
     }
 
     @GetMapping("/recommendations")
-    public List<TrackDto> getRecommendations(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, RecommendationFiltersDto recommendationFiltersDto) {
-        return  this.spotifyService.getRecommendations(client, recommendationFiltersDto);
+    public List<TrackDto> getRecommendations(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client) {
+        return  this.spotifyService.getRecommendations(client);
     }
 
     @GetMapping("/generate-from-prompt")

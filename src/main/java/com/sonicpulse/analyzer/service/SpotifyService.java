@@ -3,7 +3,6 @@ package com.sonicpulse.analyzer.service;
 import com.sonicpulse.analyzer.dto.ArtistDto;
 import com.sonicpulse.analyzer.dto.CreatePlaylistDto;
 import com.sonicpulse.analyzer.dto.PagingResponse;
-import com.sonicpulse.analyzer.dto.RecommendationFiltersDto;
 import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.SpotifySearchResponse;
 import com.sonicpulse.analyzer.dto.TrackDto;
@@ -13,7 +12,6 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import javax.sound.midi.Track;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -61,7 +59,7 @@ public class SpotifyService {
                 .body(new ParameterizedTypeReference<PagingResponse<TrackDto>>() {});
     }
 
-    public List<TrackDto> getRecommendations(OAuth2AuthorizedClient client, RecommendationFiltersDto recommendationFiltersDto) {
+    public List<TrackDto> getRecommendations(OAuth2AuthorizedClient client) {
         String token = client.getAccessToken().getTokenValue();
 
         List<TrackDto> topTracks = this.getTopTracks(client, "medium_term", 3).items();
@@ -85,7 +83,7 @@ public class SpotifyService {
                         .path("/search")
                         .queryParam("q", "artist:\"" + queryArtist + "\"")
                         .queryParam("type", "track")
-                        .queryParam("limit", recommendationFiltersDto.limit() != null ? recommendationFiltersDto.limit() : 10)
+                        .queryParam("limit",10)
                         .build()
                 )
                 .headers(headers -> headers.setBearerAuth(token))
