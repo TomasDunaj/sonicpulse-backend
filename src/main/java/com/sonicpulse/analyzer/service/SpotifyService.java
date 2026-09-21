@@ -13,21 +13,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SpotifyService {
 
     private final RestClient restClient;
+    private final GeminiService geminiService;
 
-    public SpotifyService() {
+    public SpotifyService(GeminiService geminiService) {
         this.restClient = RestClient.builder()
                 .baseUrl("https://api.spotify.com/v1")
                 .build();
+
+        this.geminiService = geminiService;
     }
 
     public PagingResponse<ArtistDto> getTopArtists(OAuth2AuthorizedClient client, String timeRange, Integer limit) {
@@ -60,37 +65,37 @@ public class SpotifyService {
     }
 
     public List<TrackDto> getRecommendations(OAuth2AuthorizedClient client) {
-        String token = client.getAccessToken().getTokenValue();
 
-        List<TrackDto> topTracks = this.getTopTracks(client, "medium_term", 3).items();
-
-        if (topTracks.isEmpty()) {
+        PagingResponse<ArtistDto> topArtistsPage = this.getTopArtists(client, "medium_term", 5);
+        if (topArtistsPage == null || topArtistsPage.items() == null || topArtistsPage.items().isEmpty()) {
             return List.of();
         }
 
-        Random random = new Random();
+        List<String> myTopArtists = topArtistsPage.items().stream()
+                .map(ArtistDto::name)
+                .toList();
 
-        TrackDto randomTrack =  topTracks.get(random.nextInt(topTracks.size()));
+        List<String> geminiRecommended = this.geminiService.generateKeywordsFromTopArtists(myTopArtists);
 
-        if (randomTrack.artists() == null || randomTrack.artists().isEmpty()) {
+        Set<String> targetArtists = new LinkedHashSet<>(myTopArtists);
+        if (geminiRecommended != null) {
+            targetArtists.addAll(geminiRecommended);
+        }
+
+        List<TrackDto> recommendedTracks = new ArrayList<>();
+
+        for (String artist : targetArtists) {
+            List<TrackDto> tracksForArtist = this.searchTracks(client, artist, 4);
+            recommendedTracks.addAll(tracksForArtist); // Žiadny extra filter nie je potrebný!
+        }
+
+        if (recommendedTracks.isEmpty()) {
             return List.of();
         }
 
-        String queryArtist = randomTrack.artists().get(random.nextInt(randomTrack.artists().size())).name();
+        Collections.shuffle(recommendedTracks);
 
-        SpotifySearchResponse response =  restClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/search")
-                        .queryParam("q", "artist:\"" + queryArtist + "\"")
-                        .queryParam("type", "track")
-                        .queryParam("limit",10)
-                        .build()
-                )
-                .headers(headers -> headers.setBearerAuth(token))
-                .retrieve()
-                .body(SpotifySearchResponse.class);
-
-        return (response != null && response.tracks() != null) ? response.tracks().items() : List.of();
+        return recommendedTracks.stream().limit(15).toList();
     }
 
     public List<TrackDto> searchTracks(OAuth2AuthorizedClient client, String keyword, int targetCount) {
@@ -100,6 +105,8 @@ public class SpotifyService {
         int limitPerPage = 10;
         int offset = 0;
 
+        String searchQuery = "artist:\"" + keyword + "\"";
+
         while (allTracksForKeyword.size() < targetCount) {
 
             final int currentOffset = offset;
@@ -107,7 +114,7 @@ public class SpotifyService {
             SpotifySearchResponse response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/search")
-                            .queryParam("q", keyword)
+                            .queryParam("q", searchQuery)
                             .queryParam("type", "track")
                             .queryParam("limit", limitPerPage)
                             .queryParam("offset", currentOffset)

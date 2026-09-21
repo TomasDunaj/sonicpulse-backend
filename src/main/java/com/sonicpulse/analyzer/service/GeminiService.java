@@ -41,8 +41,7 @@ public class GeminiService {
     }
 
     public List<String> extractKeyWords(String userPrompt) {
-
-        String systemInstructionText = """
+        String systemInstruction = """
                 Extract 3-5 Spotify search keywords from the prompt as a JSON array of strings.
                 
                 RULES:
@@ -51,14 +50,39 @@ public class GeminiService {
                 - Always use artist:"Name" syntax for artist names.
                 """;
 
+        return callGeminiForKeywords(userPrompt, systemInstruction, List.of("top hits"));
+    }
+
+    public List<String> generateKeywordsFromTopArtists(List<String> artistNames) {
+        if (artistNames == null || artistNames.isEmpty()) {
+            return List.of("Glass Animals", "Foals", "The Strokes");
+        }
+
+        String inputPrompt = "My favorite artists are: " + String.join(", ", artistNames);
+
+        String systemInstruction = """
+            Based on the provided list of favorite artists, generate 3-5 similar well-known artist names to discover tracks on Spotify.
+            Return a JSON array of strings.
+            
+            RULES:
+            - Return ONLY clean artist/band names.
+            - Do NOT use genres (no 'indie', 'rock', 'post-punk').
+            - Do NOT use special syntax like 'artist:', quotes, or hyphenation unless it's part of the real band name.
+            - Example output: ["Glass Animals", "Foals", "The Strokes"]
+            """;
+
+        return callGeminiForKeywords(inputPrompt, systemInstruction, List.of("Glass Animals", "Foals", "The Strokes"));
+    }
+
+    private List<String> callGeminiForKeywords(String userPrompt, String instructions, List<String> fallbackKeywords) {
+
         GeminiRequest requestBody = new GeminiRequest(
                 List.of(new Content(List.of(new Part(userPrompt)))),
-                new Content(List.of(new Part(systemInstructionText))),
+                new Content(List.of(new Part(instructions))),
                 new GenerationConfig(0.2, "application/json")
         );
 
         try {
-
             String rawResponse = restClient.post()
                     .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey)
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
@@ -80,12 +104,12 @@ public class GeminiService {
             );
 
         } catch (HttpClientErrorException.TooManyRequests e) {
-            System.err.println("Gemini API limit dosiahnutý (429)! Používam fallback kľúčové slová.");
-            return List.of("pop rock chill");
+            System.err.println("Gemini API limit reached (429)! Using fallback keywords.");
+            return fallbackKeywords;
 
         } catch (Exception e) {
-            System.err.println("Iná chyba pri volaní Gemini: " + e.getMessage());
-            return List.of("top hits");
+            System.err.println("Error calling Gemini: " + e.getMessage());
+            return fallbackKeywords;
         }
     }
 }
