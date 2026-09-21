@@ -86,7 +86,7 @@ public class SpotifyService {
 
         for (String artist : targetArtists) {
             List<TrackDto> tracksForArtist = this.searchTracks(client, artist, 4);
-            recommendedTracks.addAll(tracksForArtist); // Žiadny extra filter nie je potrebný!
+            recommendedTracks.addAll(tracksForArtist);
         }
 
         if (recommendedTracks.isEmpty()) {

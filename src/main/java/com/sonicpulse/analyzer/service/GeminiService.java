@@ -40,6 +40,9 @@ public class GeminiService {
             GenerationConfig generationConfig) {
     }
 
+    public record Candidate(Content content) {}
+    public record GeminiResponse(List<Candidate> candidates) {}
+
     public List<String> extractKeyWords(String userPrompt) {
         String systemInstruction = """
                 Extract 3-5 Spotify search keywords from the prompt as a JSON array of strings.
@@ -83,25 +86,16 @@ public class GeminiService {
         );
 
         try {
-            String rawResponse = restClient.post()
+            GeminiResponse response = restClient.post()
                     .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=" + apiKey)
                     .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
-                    .body(String.class);
+                    .body(GeminiResponse.class);
 
-            JsonNode rootNode = objectMapper.readTree(rawResponse);
+            String jsonText = response.candidates().get(0).content().parts().get(0).text();
 
-            String jsonArrayText = rootNode
-                    .path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
-
-            return objectMapper.readValue(
-                    jsonArrayText,
-                    new TypeReference<List<String>>() {
-                    }
-            );
+            return objectMapper.readValue(jsonText, new TypeReference<List<String>>() {});
 
         } catch (HttpClientErrorException.TooManyRequests e) {
             System.err.println("Gemini API limit reached (429)! Using fallback keywords.");
