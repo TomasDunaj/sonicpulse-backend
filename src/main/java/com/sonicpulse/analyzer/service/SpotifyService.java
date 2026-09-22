@@ -17,9 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class SpotifyService {
@@ -124,11 +122,16 @@ public class SpotifyService {
                     .retrieve()
                     .body(SpotifySearchResponse.class);
 
-            if (response == null || response.tracks() == null || response.tracks().items().isEmpty()) {
+            if (response == null || response.tracks() == null || response.tracks().items().isEmpty() || response.tracks().items().size() < limitPerPage) {
                 break;
             }
 
-            allTracksForKeyword.addAll(response.tracks().items());
+            List<TrackDto> fetchedTracks = response.tracks().items();
+            allTracksForKeyword.addAll(fetchedTracks);
+
+            if (fetchedTracks.size() < limitPerPage) {
+                break;
+            }
 
             offset += limitPerPage;
         }
@@ -140,7 +143,7 @@ public class SpotifyService {
         if (keywords == null || keywords.isEmpty() || limit == null || limit <= 0) {
             return List.of();
         }
-
+        
         List<List<TrackDto>> foundTracks = new ArrayList<>();
 
         for (String keyword : keywords) {
