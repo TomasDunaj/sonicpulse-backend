@@ -122,7 +122,7 @@ public class SpotifyService {
                     .retrieve()
                     .body(SpotifySearchResponse.class);
 
-            if (response == null || response.tracks() == null || response.tracks().items().isEmpty() || response.tracks().items().size() < limitPerPage) {
+            if (response == null || response.tracks() == null || response.tracks().items().isEmpty()) {
                 break;
             }
 
@@ -143,7 +143,7 @@ public class SpotifyService {
         if (keywords == null || keywords.isEmpty() || limit == null || limit <= 0) {
             return List.of();
         }
-        
+
         List<List<TrackDto>> foundTracks = new ArrayList<>();
 
         for (String keyword : keywords) {
