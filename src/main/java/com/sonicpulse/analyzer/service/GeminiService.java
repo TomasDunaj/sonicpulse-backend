@@ -1,7 +1,6 @@
 package com.sonicpulse.analyzer.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -9,7 +8,6 @@ import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class GeminiService {
@@ -48,7 +46,7 @@ public class GeminiService {
                 Extract 3-5 Spotify search keywords from the prompt as a JSON array of strings.
                 
                 RULES:
-                - If user uses restrictive words ("only", "exclusively"), return ONLY filters for those exact artists (e.g. artist:"Calin"). NO other artists.
+                - If user uses restrictive words ("only", "just", "iba", "len"), return ONLY filters for those exact artists (e.g. artist:"Calin"). NO other artists.
                 - If prompt is open-ended, feel free to include similar artists or genres.
                 - Always use artist:"Name" syntax for artist names.
                 """;

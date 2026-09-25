@@ -5,6 +5,7 @@ import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.SwapRequestDto;
 import com.sonicpulse.analyzer.dto.TrackDto;
+import com.sonicpulse.analyzer.enums.GenerationMode;
 import com.sonicpulse.analyzer.service.GeminiService;
 import com.sonicpulse.analyzer.service.SpotifyService;
 import org.springframework.http.ResponseEntity;
@@ -49,10 +50,10 @@ public class SpotifyController {
     }
 
     @GetMapping("/generate-from-prompt")
-    public List<TrackDto> generateFromPrompt(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestParam String prompt, @RequestParam(defaultValue = "10") Integer limit) {
+    public List<TrackDto> generateFromPrompt(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestParam String prompt, @RequestParam GenerationMode generationMode, @RequestParam(defaultValue = "10") Integer limit) {
         List<String> keywords = this.geminiService.extractKeyWords(prompt);
 
-        return this.spotifyService.generatePlaylistFromKeywords(client, keywords, limit);
+        return this.spotifyService.generatePlaylistFromKeywords(client, keywords, generationMode, limit);
     }
 
     @PostMapping("/save-playlist")

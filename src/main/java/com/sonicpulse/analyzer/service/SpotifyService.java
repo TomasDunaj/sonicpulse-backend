@@ -6,6 +6,7 @@ import com.sonicpulse.analyzer.dto.PagingResponse;
 import com.sonicpulse.analyzer.dto.SavePlaylistRequest;
 import com.sonicpulse.analyzer.dto.SpotifySearchResponse;
 import com.sonicpulse.analyzer.dto.TrackDto;
+import com.sonicpulse.analyzer.enums.GenerationMode;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -14,6 +15,7 @@ import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +46,8 @@ public class SpotifyService {
                 )
                 .header("Authorization", "Bearer " + token)
                 .retrieve()
-                .body(new ParameterizedTypeReference<PagingResponse<ArtistDto>>() {});
+                .body(new ParameterizedTypeReference<PagingResponse<ArtistDto>>() {
+                });
     }
 
     public PagingResponse<TrackDto> getTopTracks(OAuth2AuthorizedClient client, String timeRange, Integer limit) {
@@ -55,11 +58,12 @@ public class SpotifyService {
                         .path("/me/top/tracks")
                         .queryParam("time_range", timeRange)
                         .queryParam("limit", limit)
-                .build()
+                        .build()
                 )
                 .header("Authorization", "Bearer " + token)
                 .retrieve()
-                .body(new ParameterizedTypeReference<PagingResponse<TrackDto>>() {});
+                .body(new ParameterizedTypeReference<PagingResponse<TrackDto>>() {
+                });
     }
 
     public List<TrackDto> getRecommendations(OAuth2AuthorizedClient client) {
@@ -96,7 +100,7 @@ public class SpotifyService {
         return recommendedTracks.stream().limit(15).toList();
     }
 
-    public List<TrackDto> searchTracks(OAuth2AuthorizedClient client, String keyword, int targetCount) {
+    public List<TrackDto> searchTracks(OAuth2AuthorizedClient client, String keyword, GenerationMode mode, int targetCount) {
         String token = client.getAccessToken().getTokenValue();
         List<TrackDto> allTracksForKeyword = new ArrayList<>();
 
@@ -127,7 +131,22 @@ public class SpotifyService {
             }
 
             List<TrackDto> fetchedTracks = response.tracks().items();
-            allTracksForKeyword.addAll(fetchedTracks);
+
+            if (mode == GenerationMode.RESTRICTIVE) {
+                String cleanKeyword = keyword.replace("artist:", "").replace("\"", "").trim();
+
+                for (TrackDto track : fetchedTracks) {
+                    boolean isExactMatch = track.artists().stream().anyMatch(a -> a.name().equalsIgnoreCase(cleanKeyword));
+
+                    if (isExactMatch) {
+                        allTracksForKeyword.add(track);
+                    }
+                }
+
+            }
+            else {
+                allTracksForKeyword.addAll(fetchedTracks);
+            }
 
             if (fetchedTracks.size() < limitPerPage) {
                 break;
@@ -139,7 +158,12 @@ public class SpotifyService {
         return allTracksForKeyword;
     }
 
-    public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords, Integer limit) {
+    public List<TrackDto> searchTracks(OAuth2AuthorizedClient client, String keyword, int targetCount) {
+        return searchTracks(client, keyword, GenerationMode.OPEN_MINDED, targetCount);
+    }
+
+
+    public List<TrackDto> generatePlaylistFromKeywords(OAuth2AuthorizedClient client, List<String> keywords, GenerationMode mode, Integer limit) {
         if (keywords == null || keywords.isEmpty() || limit == null || limit <= 0) {
             return List.of();
         }
@@ -147,20 +171,22 @@ public class SpotifyService {
         List<List<TrackDto>> foundTracks = new ArrayList<>();
 
         for (String keyword : keywords) {
-            List<TrackDto> tracks = this.searchTracks(client, keyword, 20);
+            List<TrackDto> tracks = this.searchTracks(client, keyword, mode, 20);
 
             if (!tracks.isEmpty()) {
                 foundTracks.add(tracks);
             }
         }
 
-        Set<TrackDto> finalTracks = new LinkedHashSet<>();
+        Map<String, TrackDto> finalTracks = new LinkedHashMap<>();
         int maxTracksPerList = 20;
 
         for (int i = 0; i < maxTracksPerList; i++) {
             for (List<TrackDto> tracks : foundTracks) {
                 if (i < tracks.size()) {
-                    finalTracks.add(tracks.get(i));
+                    TrackDto track = tracks.get(i);
+                    String uniqueKey = track.name().toLowerCase().trim();
+                    finalTracks.putIfAbsent(uniqueKey, tracks.get(i) );
                 }
 
                 if (finalTracks.size() >= limit) {
@@ -173,7 +199,7 @@ public class SpotifyService {
             }
         }
 
-        return new ArrayList<>(finalTracks);
+        return new ArrayList<>(finalTracks.values());
     }
 
     public String savePlaylist(OAuth2AuthorizedClient client, SavePlaylistRequest request) {
@@ -224,7 +250,7 @@ public class SpotifyService {
     }
 
     public TrackDto swapTrack(OAuth2AuthorizedClient client, String keyword, List<String> excludedIds) {
-        List<TrackDto> foundTracks =  this.searchTracks(client, keyword, 20);
+        List<TrackDto> foundTracks = this.searchTracks(client, keyword, 20);
 
         for (TrackDto track : foundTracks) {
             if (!excludedIds.contains(track.id())) {
