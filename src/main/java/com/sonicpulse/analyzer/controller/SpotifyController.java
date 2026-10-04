@@ -51,7 +51,7 @@ public class SpotifyController {
 
     @GetMapping("/generate-from-prompt")
     public List<TrackDto> generateFromPrompt(@RegisteredOAuth2AuthorizedClient("spotify") OAuth2AuthorizedClient client, @RequestParam String prompt, @RequestParam GenerationMode generationMode, @RequestParam(defaultValue = "10") Integer limit) {
-        List<String> keywords = this.geminiService.extractKeyWords(prompt);
+        List<String> keywords = this.geminiService.extractKeyWords(prompt, generationMode);
 
         return this.spotifyService.generatePlaylistFromKeywords(client, keywords, generationMode, limit);
     }

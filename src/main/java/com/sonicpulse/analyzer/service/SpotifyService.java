@@ -136,7 +136,8 @@ public class SpotifyService {
                 String cleanKeyword = keyword.replace("artist:", "").replace("\"", "").trim();
 
                 for (TrackDto track : fetchedTracks) {
-                    boolean isExactMatch = track.artists().stream().anyMatch(a -> a.name().equalsIgnoreCase(cleanKeyword));
+                    boolean isExactMatch = track.artists().stream().anyMatch(a -> a.name().equalsIgnoreCase(cleanKeyword)
+                            || a.name().toLowerCase().contains(cleanKeyword.toLowerCase()));
 
                     if (isExactMatch) {
                         allTracksForKeyword.add(track);
@@ -155,11 +156,11 @@ public class SpotifyService {
                 }
             }
 
-            if (fetchedTracks.size() < limitPerPage) {
+            offset += limitPerPage;
+
+            if (offset > 50) {
                 break;
             }
-
-            offset += limitPerPage;
         }
 
         return allTracksForKeyword;

@@ -1,6 +1,7 @@
 package com.sonicpulse.analyzer.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.sonicpulse.analyzer.enums.GenerationMode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -41,17 +42,46 @@ public class GeminiService {
     public record Candidate(Content content) {}
     public record GeminiResponse(List<Candidate> candidates) {}
 
-    public List<String> extractKeyWords(String userPrompt) {
-        String systemInstruction = """
-                Extract 3-5 Spotify search keywords from the prompt as a JSON array of strings.
-                
-                RULES:
-                - If user uses restrictive words ("only", "just", "iba", "len"), return ONLY filters for those exact artists (e.g. artist:"Calin"). NO other artists.
-                - If prompt is open-ended, feel free to include similar artists or genres.
-                - Always use artist:"Name" syntax for artist names.
-                """;
+    public List<String> extractKeyWords(String userPrompt, GenerationMode mode) {
+        String systemInstruction;
 
-        return callGeminiForKeywords(userPrompt, systemInstruction, List.of("top hits"));
+        if (mode == GenerationMode.RESTRICTIVE) {
+            systemInstruction = """
+                Extract ONLY the exact artist or band names mentioned in the prompt as a JSON array of strings.
+                
+                CRITICAL RULES FOR RESTRICTIVE MODE:
+                - Return ONLY the exact artists requested.
+                - ABSOLUTELY NO similar artists, genres, or descriptive words.
+                - Do NOT use 'artist:' syntax or quotes inside the strings.
+                - Output format example: ["Cigarettes After Sex"]
+                """;
+        } else {
+            // OPEN-MINDED MÓD: Tu môže zapnúť fantáziu a pridať podobných umelcov/žánre!
+            systemInstruction = """
+                Analyze the prompt and extract search keywords as a JSON array of strings.
+                
+                RULES FOR OPEN-MINDED MODE:
+                - Include the main artist/band from the prompt.
+                - Feel free to use your creativity to add similar artists, bands, or matching genres.
+                - Return clean strings, no special syntax like 'artist:' or quotes.
+                - Example output: ["Cigarettes After Sex", "dream pop", "Mazzy Star", "slowcore"]
+                """;
+        }
+
+        // Pre Open-minded módu môžeme nechať teplotu vyššiu (napr. 0.7), pre Restrictive 0.0
+        double temperature = (mode == GenerationMode.RESTRICTIVE) ? 0.0 : 0.2;
+
+        System.out.println("🤖 [GEMINI DEBUG] ----------------------------------------");
+        System.out.println("🤖 [GEMINI DEBUG] Prompt: " + userPrompt);
+        System.out.println("🤖 [GEMINI DEBUG] Mód: " + mode + " | Teplota: " + temperature);
+
+        List<String> keywords = callGeminiForKeywords(userPrompt, systemInstruction, temperature, List.of("top hits"));
+
+        // --- DEBUG LOG VÝSTUPU ---
+        System.out.println("🤖 [GEMINI DEBUG] Výsledné keywords pre Spotify: " + keywords);
+        System.out.println("🤖 [GEMINI DEBUG] ----------------------------------------");
+
+        return callGeminiForKeywords(userPrompt, systemInstruction, temperature, List.of("top hits"));
     }
 
     public List<String> generateKeywordsFromTopArtists(List<String> artistNames) {
@@ -72,15 +102,15 @@ public class GeminiService {
             - Example output: ["Glass Animals", "Foals", "The Strokes"]
             """;
 
-        return callGeminiForKeywords(inputPrompt, systemInstruction, List.of("Glass Animals", "Foals", "The Strokes"));
+        return callGeminiForKeywords(inputPrompt, systemInstruction, 0.2, List.of("Glass Animals", "Foals", "The Strokes"));
     }
 
-    private List<String> callGeminiForKeywords(String userPrompt, String instructions, List<String> fallbackKeywords) {
+    private List<String> callGeminiForKeywords(String userPrompt, String instructions, double temperature, List<String> fallbackKeywords) {
 
         GeminiRequest requestBody = new GeminiRequest(
                 List.of(new Content(List.of(new Part(userPrompt)))),
                 new Content(List.of(new Part(instructions))),
-                new GenerationConfig(0.2, "application/json")
+                new GenerationConfig(temperature, "application/json")
         );
 
         try {
