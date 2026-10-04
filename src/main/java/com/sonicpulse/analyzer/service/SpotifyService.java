@@ -141,11 +141,18 @@ public class SpotifyService {
                     if (isExactMatch) {
                         allTracksForKeyword.add(track);
                     }
-                }
 
+                    if (allTracksForKeyword.size() >= targetCount) {
+                        break;
+                    }
+                }
             }
             else {
-                allTracksForKeyword.addAll(fetchedTracks);
+                for (TrackDto track : fetchedTracks) {
+                    if (allTracksForKeyword.size() < targetCount) {
+                        allTracksForKeyword.add(track);
+                    }
+                }
             }
 
             if (fetchedTracks.size() < limitPerPage) {
