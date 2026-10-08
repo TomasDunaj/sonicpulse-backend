@@ -47,39 +47,27 @@ public class GeminiService {
 
         if (mode == GenerationMode.RESTRICTIVE) {
             systemInstruction = """
-                Extract ONLY the exact artist or band names mentioned in the prompt as a JSON array of strings.
-                
-                CRITICAL RULES FOR RESTRICTIVE MODE:
-                - Return ONLY the exact artists requested.
-                - ABSOLUTELY NO similar artists, genres, or descriptive words.
-                - Do NOT use 'artist:' syntax or quotes inside the strings.
-                - Output format example: ["Cigarettes After Sex"]
-                """;
+        Extract ONLY the exact artist or band names mentioned in the prompt as a JSON array of strings.
+        
+        CRITICAL RULES FOR RESTRICTIVE MODE:
+        - Return ONLY the exact artists requested.
+        - ABSOLUTELY NO similar artists, genres, or descriptive words.
+        - Do NOT use 'artist:' syntax or quotes inside the strings.
+        - Output format example: ["Calin"]
+        """;
         } else {
-            // OPEN-MINDED MÓD: Tu môže zapnúť fantáziu a pridať podobných umelcov/žánre!
             systemInstruction = """
-                Analyze the prompt and extract search keywords as a JSON array of strings.
-                
-                RULES FOR OPEN-MINDED MODE:
-                - Include the main artist/band from the prompt.
-                - Feel free to use your creativity to add similar artists, bands, or matching genres.
-                - Return clean strings, no special syntax like 'artist:' or quotes.
-                - Example output: ["Cigarettes After Sex", "dream pop", "Mazzy Star", "slowcore"]
-                """;
+        Analyze the prompt and extract search keywords as a JSON array of strings.
+        
+        RULES FOR OPEN-MINDED MODE:
+        - Include the main artist/band from the prompt.
+        - Feel free to use your creativity to add similar artists, bands, or matching genres.
+        - Return clean strings, no special syntax like 'artist:' or quotes.
+        - Example output: ["Calin", "Viktor Sheen", "czsk pop", "rap"]
+        """;
         }
 
-        // Pre Open-minded módu môžeme nechať teplotu vyššiu (napr. 0.7), pre Restrictive 0.0
         double temperature = (mode == GenerationMode.RESTRICTIVE) ? 0.0 : 0.2;
-
-        System.out.println("🤖 [GEMINI DEBUG] ----------------------------------------");
-        System.out.println("🤖 [GEMINI DEBUG] Prompt: " + userPrompt);
-        System.out.println("🤖 [GEMINI DEBUG] Mód: " + mode + " | Teplota: " + temperature);
-
-        List<String> keywords = callGeminiForKeywords(userPrompt, systemInstruction, temperature, List.of("top hits"));
-
-        // --- DEBUG LOG VÝSTUPU ---
-        System.out.println("🤖 [GEMINI DEBUG] Výsledné keywords pre Spotify: " + keywords);
-        System.out.println("🤖 [GEMINI DEBUG] ----------------------------------------");
 
         return callGeminiForKeywords(userPrompt, systemInstruction, temperature, List.of("top hits"));
     }
