@@ -34,3 +34,4 @@ build/
 
 ### Secrets / Configuration ###
 src/main/resources/application.yml
+.env
