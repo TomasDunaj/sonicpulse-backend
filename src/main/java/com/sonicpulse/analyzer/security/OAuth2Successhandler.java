@@ -49,6 +49,6 @@ public class OAuth2Successhandler implements AuthenticationSuccessHandler {
                         : null
         );
 
-        response.sendRedirect("http://127.0.0.1:5173/");
+        response.sendRedirect(frontendUrl);
     }
 }
