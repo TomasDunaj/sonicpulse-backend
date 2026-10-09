@@ -17,3 +17,6 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: DEBUG
+
+app:
+  frontend-url: ${APP_FRONTEND_URL:http://127.0.0.1:5173}
