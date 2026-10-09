@@ -31,24 +31,30 @@ public class OAuth2Successhandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        OAuth2User user = (OAuth2User) authentication.getPrincipal();
+        try {
+            OAuth2User user = (OAuth2User) authentication.getPrincipal();
 
-        OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
+            OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
 
-        OAuth2AuthorizedClient client = oAuth2AuthorizedClientService.loadAuthorizedClient(authToken.getAuthorizedClientRegistrationId(), authToken.getName());
+            OAuth2AuthorizedClient client = oAuth2AuthorizedClientService.loadAuthorizedClient(authToken.getAuthorizedClientRegistrationId(), authToken.getName());
 
-        userService.processOAuthUser(
-                user.getAttribute("id"),
-                user.getAttribute("email"),
-                user.getAttribute("display_name"),
-                client.getAccessToken() != null
-                        ? client.getAccessToken().getTokenValue() :
-                        null,
-                client.getRefreshToken() != null
-                        ? client.getRefreshToken().getTokenValue()
-                        : null
-        );
+            userService.processOAuthUser(
+                    user.getAttribute("id"),
+                    user.getAttribute("email"),
+                    user.getAttribute("display_name"),
+                    client.getAccessToken() != null
+                            ? client.getAccessToken().getTokenValue() :
+                            null,
+                    client.getRefreshToken() != null
+                            ? client.getRefreshToken().getTokenValue()
+                            : null
+            );
 
-        response.sendRedirect(frontendUrl);
+            response.sendRedirect(frontendUrl);
+        } catch (Exception e) {
+            System.err.println("CHYBA V SUCCESS HANDLERI: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
