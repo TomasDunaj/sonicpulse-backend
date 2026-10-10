@@ -4,6 +4,7 @@ import com.sonicpulse.analyzer.service.UserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -30,31 +31,26 @@ public class OAuth2Successhandler implements AuthenticationSuccessHandler {
     }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        try {
-            OAuth2User user = (OAuth2User) authentication.getPrincipal();
+    public void onAuthenticationSuccess(@NonNull HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
-            OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
+        OAuth2User user = (OAuth2User) authentication.getPrincipal();
 
-            OAuth2AuthorizedClient client = oAuth2AuthorizedClientService.loadAuthorizedClient(authToken.getAuthorizedClientRegistrationId(), authToken.getName());
+        OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
 
-            userService.processOAuthUser(
-                    user.getAttribute("id"),
-                    user.getAttribute("email"),
-                    user.getAttribute("display_name"),
-                    client.getAccessToken() != null
-                            ? client.getAccessToken().getTokenValue() :
-                            null,
-                    client.getRefreshToken() != null
-                            ? client.getRefreshToken().getTokenValue()
-                            : null
-            );
+        OAuth2AuthorizedClient client = oAuth2AuthorizedClientService.loadAuthorizedClient(authToken.getAuthorizedClientRegistrationId(), authToken.getName());
 
-            response.sendRedirect(frontendUrl);
-        } catch (Exception e) {
-            System.err.println("CHYBA V SUCCESS HANDLERI: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
+        userService.processOAuthUser(
+                user.getAttribute("id"),
+                user.getAttribute("email"),
+                user.getAttribute("display_name"),
+                client.getAccessToken() != null
+                        ? client.getAccessToken().getTokenValue() :
+                        null,
+                client.getRefreshToken() != null
+                        ? client.getRefreshToken().getTokenValue()
+                        : null
+        );
+
+        response.sendRedirect(frontendUrl);
     }
 }
